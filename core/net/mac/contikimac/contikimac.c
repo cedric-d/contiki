@@ -385,23 +385,25 @@ powercycle(struct rtimer *t, void *ptr)
     static uint8_t packet_seen;
     static uint8_t count;
 
+    do {
 #if SYNC_CYCLE_STARTS
-    /* Compute cycle start when RTIMER_ARCH_SECOND is not a multiple
-       of CHANNEL_CHECK_RATE */
-    if(sync_cycle_phase++ == NETSTACK_RDC_CHANNEL_CHECK_RATE) {
-      sync_cycle_phase = 0;
-      sync_cycle_start += RTIMER_ARCH_SECOND;
-      cycle_start = sync_cycle_start;
-    } else {
+      /* Compute cycle start when RTIMER_ARCH_SECOND is not a multiple
+         of CHANNEL_CHECK_RATE */
+      if(sync_cycle_phase++ == NETSTACK_RDC_CHANNEL_CHECK_RATE) {
+        sync_cycle_phase = 0;
+        sync_cycle_start += RTIMER_ARCH_SECOND;
+        cycle_start = sync_cycle_start;
+      } else {
 #if (RTIMER_ARCH_SECOND * NETSTACK_RDC_CHANNEL_CHECK_RATE) > 65535
-      cycle_start = sync_cycle_start + ((unsigned long)(sync_cycle_phase*RTIMER_ARCH_SECOND))/NETSTACK_RDC_CHANNEL_CHECK_RATE;
+        cycle_start = sync_cycle_start + ((unsigned long)(sync_cycle_phase*RTIMER_ARCH_SECOND))/NETSTACK_RDC_CHANNEL_CHECK_RATE;
 #else
-      cycle_start = sync_cycle_start + (sync_cycle_phase*RTIMER_ARCH_SECOND)/NETSTACK_RDC_CHANNEL_CHECK_RATE;
+        cycle_start = sync_cycle_start + (sync_cycle_phase*RTIMER_ARCH_SECOND)/NETSTACK_RDC_CHANNEL_CHECK_RATE;
 #endif
-    }
+      }
 #else
-    cycle_start += CYCLE_TIME;
+      cycle_start += CYCLE_TIME;
 #endif
+    } while((cycle_start + CYCLE_TIME) < RTIMER_NOW());
 
     packet_seen = 0;
 

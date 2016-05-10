@@ -46,7 +46,7 @@ make unicast-sender.exp5438 DEFINES=NETSTACK_CONF_RDC=contikimac_driver,SIZE=500
       <description>Receiver</description>
       <source EXPORT="discard">[CONTIKI_DIR]/regression-tests/11-ipv6/code/receiver/udp-receiver.c</source>
       <commands EXPORT="discard">make clean TARGET=exp5438
-make udp-receiver.exp5438 DEFINES=NETSTACK_CONF_RDC=contikimac_driver TARGET=exp5438</commands>
+make udp-receiver.exp5438 DEFINES=NETSTACK_CONF_RDC=contikimac_driver,BUFSIZE=600 TARGET=exp5438</commands>
       <firmware EXPORT="copy">[CONTIKI_DIR]/regression-tests/11-ipv6/code/receiver/udp-receiver.exp5438</firmware>
       <moteinterface>org.contikios.cooja.interfaces.Position</moteinterface>
       <moteinterface>org.contikios.cooja.interfaces.RimeAddress</moteinterface>
@@ -153,7 +153,8 @@ make udp-receiver.exp5438 DEFINES=NETSTACK_CONF_RDC=contikimac_driver TARGET=exp
   <plugin>
     org.contikios.cooja.plugins.ScriptRunner
     <plugin_config>
-      <scriptfile>[CONFIG_DIR]/fragmentation-should-receive-none.js</scriptfile>      <active>true</active>
+      <scriptfile>[CONFIG_DIR]/fragmentation-should-receive-all.js</scriptfile>
+      <active>true</active>
     </plugin_config>
     <width>618</width>
     <z>1</z>

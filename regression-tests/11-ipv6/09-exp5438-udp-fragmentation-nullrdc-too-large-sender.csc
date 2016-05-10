@@ -46,7 +46,7 @@ make udp-sender.exp5438 DEFINES=NETSTACK_CONF_RDC=nullrdc_driver,SIZE=500,BUFSIZ
       <description>Receiver</description>
       <source EXPORT="discard">[CONTIKI_DIR]/regression-tests/11-ipv6/code/receiver/udp-receiver.c</source>
       <commands EXPORT="discard">make clean TARGET=exp5438
-make udp-receiver.exp5438 DEFINES=NETSTACK_CONF_RDC=nullrdc_driver TARGET=exp5438</commands>
+make udp-receiver.exp5438 DEFINES=NETSTACK_CONF_RDC=nullrdc_driver,BUFSIZE=600 TARGET=exp5438</commands>
       <firmware EXPORT="copy">[CONTIKI_DIR]/regression-tests/11-ipv6/code/receiver/udp-receiver.exp5438</firmware>
       <moteinterface>org.contikios.cooja.interfaces.Position</moteinterface>
       <moteinterface>org.contikios.cooja.interfaces.RimeAddress</moteinterface>

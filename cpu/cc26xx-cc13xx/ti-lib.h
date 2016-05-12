@@ -206,6 +206,21 @@
 #define ti_lib_chipinfo_hw_revision_is_2_2(...)        ChipInfo_HwRevisionIs_2_2(__VA_ARGS__)
 #define ti_lib_chipinfo_hw_revision_is_gteq_2_2(...)   ChipInfo_HwRevisionIs_GTEQ_2_2( __VA_ARGS__ )
 /*---------------------------------------------------------------------------*/
+/* crypto.h */
+#include "driverlib/crypto.h"
+
+#define ti_lib_crypto_aes_load_key(...)                    CRYPTOAesLoadKey(__VA_ARGS__)
+#define ti_lib_crypto_aes_ecb(...)                         CRYPTOAesEcb(__VA_ARGS__)
+#define ti_lib_crypto_aes_ecb_status(...)                  CRYPTOAesEcbStatus(__VA_ARGS__)
+#define ti_lib_crypto_ccm_auth_encrypt(...)                CRYPTOCcmAuthEncrypt(__VA_ARGS__)
+#define ti_lib_crypto_ccm_auth_encrypt_status(...)         CRYPTOCcmAuthEncryptStatus(__VA_ARGS__)
+#define ti_lib_crypto_ccm_auth_encrypt_result_get(...)     CRYPTOCcmAuthEncryptResultGet(__VA_ARGS__)
+#define ti_lib_crypto_ccm_inv_auth_decrypt(...)            CRYPTOCcmInvAuthDecrypt(__VA_ARGS__)
+#define ti_lib_crypto_ccm_inv_auth_decrypt_status(...)     CRYPTOCcmInvAuthDecryptStatus(__VA_ARGS__)
+#define ti_lib_crypto_ccm_inv_auth_decrypt_result_get(...) CRYPTOCcmInvAuthDecryptResultGet(__VA_ARGS__)
+#define ti_lib_crypto_dma_enable(...)                      CRYPTODmaEnable(__VA_ARGS__)
+#define ti_lib_crypto_dma_disable(...)                     CRYPTODmaDisable(__VA_ARGS__)
+/*---------------------------------------------------------------------------*/
 /* ddi.h */
 #include "driverlib/ddi.h"
 

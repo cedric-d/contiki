@@ -244,6 +244,10 @@
 #ifndef ENERGEST_CONF_ON
 #define ENERGEST_CONF_ON            0 /**< Energest Module */
 #endif
+
+#ifndef AES_128_CONF
+#define AES_128_CONF cc26xx_aes_128_driver
+#endif /* AES_128_CONF */
 /** @} */
 /*---------------------------------------------------------------------------*/
 /**

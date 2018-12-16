@@ -156,8 +156,12 @@ board_spi_close()
   ti_lib_ioc_pin_type_gpio_input(BOARD_IOID_SPI_MOSI);
   ti_lib_ioc_io_port_pull_set(BOARD_IOID_SPI_MOSI, IOC_IOPULL_DOWN);
 
-  ti_lib_ioc_pin_type_gpio_input(BOARD_IOID_SPI_CLK_FLASH);
-  ti_lib_ioc_io_port_pull_set(BOARD_IOID_SPI_CLK_FLASH, IOC_IOPULL_DOWN);
+#ifdef BOARD_IOID_SPI_CLK_FLASH
+  if (BOARD_IOID_SPI_CLK_FLASH != IOID_UNUSED) {
+    ti_lib_ioc_pin_type_gpio_input(BOARD_IOID_SPI_CLK_FLASH);
+    ti_lib_ioc_io_port_pull_set(BOARD_IOID_SPI_CLK_FLASH, IOC_IOPULL_DOWN);
+  }
+#endif
 }
 /*---------------------------------------------------------------------------*/
 /** @} */

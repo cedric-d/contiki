@@ -11,6 +11,7 @@ platform supports multiple boards:
 * CC2650 LaunchPad (relevant drivers under `launchpad/cc2650`)
 * CC1310 LaunchPad (relevant drivers under `launchpad/cc1310`)
 * CC1350 LaunchPad (relevant drivers under `launchpad/cc1350`)
+* CC2650 BoosterPack (relevant drivers under `boosterpack/cc2650`)
 
 The CPU code, common for both platforms, can be found under `$(CONTIKI)/cpu/cc26xx-cc13xx`.
 The port was developed and tested with CC2650s, but the intention is for it to
@@ -18,7 +19,7 @@ work with the CC2630 as well. Thus, bug reports are welcome for both chips.
 Bear in mind that the CC2630 does not have BLE capability. Similar rules apply
 in terms of CC13xx chips.
 
-This port is only meant to work with 7x7mm chips
+This port is meant to work mainly with 7x7mm chips; support of 5x5mm chips is initiated.
 
 This guide assumes that you have basic understanding of how to use the command
 line and perform basic admin tasks on UNIX family OSs.
@@ -53,6 +54,8 @@ In terms of hardware support, the following drivers have been implemented:
   * LEDs
   * Buttons
   * External SPI flash
+* BoosterPacks
+  * LEDs
 
 Requirements
 ============
@@ -106,6 +109,7 @@ Other options for the `BOARD` make variable are:
 * CC2650 Launchpad: Set `BOARD=launchpad/cc2650`
 * CC1310 Launchpad: Set `BOARD=launchpad/cc1310`
 * CC1350 Launchpad: Set `BOARD=launchpad/cc1350`
+* CC2650 BoosterPack: Set `BOARD=boosterpack/cc2650`
 
 If the `BOARD` variable is unspecified, an image for the Srf06 CC26XXEM will be built.
 

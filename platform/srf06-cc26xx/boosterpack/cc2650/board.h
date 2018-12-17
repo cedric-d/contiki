@@ -114,6 +114,7 @@
  * @{
  */
 /* Notify various examples that we do not have buttons */
+#undef PLATFORM_HAS_BUTTON
 #define PLATFORM_HAS_BUTTON      0
 /** @} */
 /*---------------------------------------------------------------------------*/

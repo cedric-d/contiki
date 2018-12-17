@@ -114,7 +114,7 @@
  * @{
  */
 /* Notify various examples that we do not have buttons */
-#define PLATFORM_HAS_BUTTONS     0
+#define PLATFORM_HAS_BUTTON      0
 /** @} */
 /*---------------------------------------------------------------------------*/
 /**

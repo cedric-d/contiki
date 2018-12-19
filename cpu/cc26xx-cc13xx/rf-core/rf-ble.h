@@ -57,6 +57,9 @@
 #define RF_BLE_IDLE   0
 #define RF_BLE_ACTIVE 1
 /*---------------------------------------------------------------------------*/
+#define BLE_EDDYSTONE_UID_LENGTH 16
+#define BLE_EDDYSTONE_URL_MAXLENGTH 17
+/*---------------------------------------------------------------------------*/
 /**
  * \brief Set the device name to use with the BLE advertisement/beacon daemon
  * \param interval The interval (ticks) between two consecutive beacon bursts
@@ -67,6 +70,22 @@
  * desired.
  */
 void rf_ble_beacond_config(clock_time_t interval, const char *name);
+
+/**
+ * \brief Set the Beacon ID to use with the Eddystone-UID advertisement daemon.
+ * \param interval The interval (ticks) between two consecutive UID beacons.
+ * \param uid The 16-byte UID to advertise.
+ */
+void rf_ble_beacond_config_eddystone_uid(clock_time_t interval,
+                                         uint8_t uid[BLE_EDDYSTONE_UID_LENGTH]);
+
+/**
+ * \brief Set the URL to use with the Eddystone-URL advertisement daemon.
+ * \param interval The interval (ticks) between two consecutive URL beacons.
+ * \param url The URL to advertise.
+ */
+void rf_ble_beacond_config_eddystone_url(clock_time_t interval,
+                                         const char *url);
 
 /**
  * \brief Start the BLE advertisement/beacon daemon

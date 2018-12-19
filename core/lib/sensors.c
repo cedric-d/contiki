@@ -114,6 +114,10 @@ PROCESS_THREAD(sensors_process, ev, data)
   }
   num_sensors = i;
 
+  if (num_sensors == 0) {
+    PROCESS_EXIT();
+  }
+
   while(1) {
 
     PROCESS_WAIT_EVENT();

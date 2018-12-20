@@ -213,7 +213,7 @@ rf_ble_beacond_prepare_payload()
 /*---------------------------------------------------------------------------*/
 void
 rf_ble_beacond_config_eddystone_uid(clock_time_t interval,
-                                    uint8_t uid[BLE_EDDYSTONE_UID_LENGTH])
+                                    const uint8_t uid[BLE_EDDYSTONE_UID_LENGTH])
 {
     if (RF_BLE_ENABLED == 0) {
         return;
@@ -354,7 +354,7 @@ rf_ble_beacond_prepare_eddystone_url_payload()
     payload[p++] = 0x16;        /* Service Data */
     payload[p++] = 0xAA;        /* 16-bit Eddystone UUID */
     payload[p++] = 0xFE;        /* 16-bit Eddystone UUID */
-    payload[p++] = 0x00;        /* URL Frame */
+    payload[p++] = 0x10;        /* URL Frame */
     payload[p++] = 0x00;        /* Calibrated Tx power at 0 m */
     payload[p++] = beacond_config_eddystone_url.prefix;
     memcpy(&payload[p], beacond_config_eddystone_url.url,
@@ -373,7 +373,9 @@ rf_ble_beacond_start()
     return RF_CORE_CMD_ERROR;
   }
 
-  if(beacond_config.adv_name[0] == 0) {
+  if(beacond_config.adv_name[0] == 0 &&
+     beacond_config_eddystone_uid.interval == 0 &&
+     beacond_config_eddystone_url.interval == 0) {
     return RF_CORE_CMD_ERROR;
   }
 
@@ -461,14 +463,17 @@ PROCESS_THREAD(rf_ble_beacon_process, ev, data)
       PROCESS_EXIT();
     }
 
-    if (etimer_expired(&ble_adv_et)) {
+    if (beacond_config.interval > 0
+        && etimer_expired(&ble_adv_et)) {
       /* Set the adv payload each pass: The device name may have changed */
       rf_ble_beacond_prepare_payload();
       etimer_restart(&ble_adv_et);
-    } else if (etimer_expired(&beacond_config_eddystone_uid.et)) {
+    } else if (beacond_config_eddystone_uid.interval > 0
+               && etimer_expired(&beacond_config_eddystone_uid.et)) {
       rf_ble_beacond_prepare_eddystone_uid_payload();
       etimer_restart(&beacond_config_eddystone_uid.et);
-    } else if (etimer_expired(&beacond_config_eddystone_url.et)) {
+    } else if (beacond_config_eddystone_url.interval > 0
+               && etimer_expired(&beacond_config_eddystone_url.et)) {
       rf_ble_beacond_prepare_eddystone_url_payload();
       etimer_restart(&beacond_config_eddystone_url.et);
     } else {
@@ -561,7 +566,9 @@ PROCESS_THREAD(rf_ble_beacon_process, ev, data)
         /* Switch HF clock source to the RCOSC to preserve power */
         oscillators_switch_to_hf_rc();
       }
-      etimer_set(&ble_adv_et, BLE_ADV_DUTY_CYCLE);
+      if(i < BLE_ADV_MESSAGES - 1) {
+        etimer_set(&ble_adv_et, BLE_ADV_DUTY_CYCLE);
+      }
 
       interrupts_disabled = ti_lib_int_master_disable();
 

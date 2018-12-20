@@ -76,8 +76,10 @@ void rf_ble_beacond_config(clock_time_t interval, const char *name);
  * \param interval The interval (ticks) between two consecutive UID beacons.
  * \param uid The 16-byte UID to advertise.
  */
-void rf_ble_beacond_config_eddystone_uid(clock_time_t interval,
-                                         uint8_t uid[BLE_EDDYSTONE_UID_LENGTH]);
+void rf_ble_beacond_config_eddystone_uid(
+    clock_time_t interval,
+    const uint8_t uid[BLE_EDDYSTONE_UID_LENGTH]
+);
 
 /**
  * \brief Set the URL to use with the Eddystone-URL advertisement daemon.

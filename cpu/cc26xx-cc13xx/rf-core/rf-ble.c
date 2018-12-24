@@ -78,8 +78,6 @@
 static unsigned char ble_params_buf[32] CC_ALIGN(4);
 static uint8_t ble_mode_on = RF_BLE_IDLE;
 static struct etimer ble_adv_et;
-static uint8_t payload[BLE_ADV_PAYLOAD_BUF_LEN];
-static int p = 0;
 static int i;
 /*---------------------------------------------------------------------------*/
 static uint16_t tx_power = 0x9330;
@@ -87,8 +85,9 @@ static uint16_t tx_power = 0x9330;
 /* BLE beacond config */
 static struct ble_beacond_config {
   clock_time_t interval;
-  char adv_name[BLE_ADV_NAME_BUF_LEN];
-} beacond_config = { .interval = BLE_ADV_INTERVAL };
+  int payload_length;
+  uint8_t payload[BLE_ADV_PAYLOAD_BUF_LEN];
+} beacond_config = { .interval = BLE_ADV_INTERVAL, .payload_length = 0 };
 /*---------------------------------------------------------------------------*/
 #ifdef RF_BLE_CONF_BOARD_OVERRIDES
 #define RF_BLE_BOARD_OVERRIDES RF_BLE_CONF_BOARD_OVERRIDES
@@ -165,12 +164,46 @@ rf_ble_beacond_config(clock_time_t interval, const char *name)
   }
 
   if(name != NULL) {
-    if(strlen(name) == 0 || strlen(name) >= BLE_ADV_NAME_BUF_LEN) {
+    size_t namelen = strlen(name);
+    if(namelen == 0 || namelen >= BLE_ADV_NAME_BUF_LEN) {
       return;
     }
 
-    memset(beacond_config.adv_name, 0, BLE_ADV_NAME_BUF_LEN);
-    memcpy(beacond_config.adv_name, name, strlen(name));
+    /* generate the payload */
+    i = 0;
+    memset(beacond_config.payload, 0, BLE_ADV_PAYLOAD_BUF_LEN);
+    beacond_config.payload[i++] = 0x02; /* 2 bytes */
+    beacond_config.payload[i++] = BLE_ADV_TYPE_DEVINFO;
+    beacond_config.payload[i++] = 0x1a; /* LE general discoverable + BR/EDR */
+    beacond_config.payload[i++] = 1 + namelen;
+    beacond_config.payload[i++] = BLE_ADV_TYPE_NAME;
+    memcpy(&beacond_config.payload[i], name, namelen);
+    i += namelen;
+    beacond_config.payload_length = i;
+  }
+
+  if(interval != 0) {
+    beacond_config.interval = interval;
+  }
+}
+/*---------------------------------------------------------------------------*/
+void
+rf_ble_beacond_config_raw(clock_time_t interval, const uint8_t *payload,
+                          size_t payload_length)
+{
+  if(RF_BLE_ENABLED == 0) {
+    return;
+  }
+
+  if(payload != NULL) {
+    if(payload_length == 0 || payload_length > BLE_ADV_PAYLOAD_BUF_LEN) {
+      return;
+    }
+
+    memcpy(beacond_config.payload, payload, payload_length);
+    memset(beacond_config.payload + payload_length, 0,
+           BLE_ADV_PAYLOAD_BUF_LEN - payload_length);
+    beacond_config.payload_length = payload_length;
   }
 
   if(interval != 0) {
@@ -189,7 +222,7 @@ rf_ble_beacond_start()
     return RF_CORE_CMD_ERROR;
   }
 
-  if(beacond_config.adv_name[0] == 0) {
+  if(beacond_config.payload_length == 0) {
     return RF_CORE_CMD_ERROR;
   }
 
@@ -264,20 +297,6 @@ PROCESS_THREAD(rf_ble_beacon_process, ev, data)
       PROCESS_EXIT();
     }
 
-    /* Set the adv payload each pass: The device name may have changed */
-    p = 0;
-
-    /* device info */
-    memset(payload, 0, BLE_ADV_PAYLOAD_BUF_LEN);
-    payload[p++] = 0x02;          /* 2 bytes */
-    payload[p++] = BLE_ADV_TYPE_DEVINFO;
-    payload[p++] = 0x1a;          /* LE general discoverable + BR/EDR */
-    payload[p++] = 1 + strlen(beacond_config.adv_name);
-    payload[p++] = BLE_ADV_TYPE_NAME;
-    memcpy(&payload[p], beacond_config.adv_name,
-           strlen(beacond_config.adv_name));
-    p += strlen(beacond_config.adv_name);
-
     for(i = 0; i < BLE_ADV_MESSAGES; i++) {
       /*
        * Under ContikiMAC, some IEEE-related operations will be called from an
@@ -339,7 +358,8 @@ PROCESS_THREAD(rf_ble_beacon_process, ev, data)
       } else {
         /* Send advertising packets on all 3 advertising channels */
         for(j = 37; j <= 39; j++) {
-          if(send_ble_adv_nc(j, payload, p) != RF_CORE_CMD_OK) {
+          if(send_ble_adv_nc(j, beacond_config.payload,
+                             beacond_config.payload_length) != RF_CORE_CMD_OK) {
             PRINTF("cc26xx_rf_ble_beacon_process: Channel=%d, "
                    "Error advertising\n", j);
             /* Break the loop, but don't return just yet */

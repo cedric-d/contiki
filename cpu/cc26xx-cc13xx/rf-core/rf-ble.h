@@ -82,6 +82,15 @@ void rf_ble_beacond_config_raw(clock_time_t interval, const uint8_t *payload,
                                size_t payload_length);
 
 /**
+ * \brief Configure the burst of BLE advertisements.
+ * \param burst_count The number of messages sent at each burst.
+ * \param duty_cycle The delay (ticks) between each message in the burst.
+ *
+ * If burst_count==0 it will be ignored.
+ */
+void rf_ble_beacond_burst_config(int burst_count, clock_time_t duty_cycle);
+
+/**
  * \brief Start the BLE advertisement/beacon daemon
  * \return RF_CORE_CMD_OK: Success, RF_CORE_CMD_ERROR: Failure
  *

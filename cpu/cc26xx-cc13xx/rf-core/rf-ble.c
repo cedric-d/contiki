@@ -85,9 +85,14 @@ static uint16_t tx_power = 0x9330;
 /* BLE beacond config */
 static struct ble_beacond_config {
   clock_time_t interval;
+  clock_time_t duty_cycle;
+  int burst_count;
   int payload_length;
   uint8_t payload[BLE_ADV_PAYLOAD_BUF_LEN];
-} beacond_config = { .interval = BLE_ADV_INTERVAL, .payload_length = 0 };
+} beacond_config = { .interval = BLE_ADV_INTERVAL,
+                     .duty_cycle = BLE_ADV_DUTY_CYCLE,
+                     .burst_count = BLE_ADV_MESSAGES,
+                     .payload_length = 0 };
 /*---------------------------------------------------------------------------*/
 #ifdef RF_BLE_CONF_BOARD_OVERRIDES
 #define RF_BLE_BOARD_OVERRIDES RF_BLE_CONF_BOARD_OVERRIDES
@@ -211,6 +216,16 @@ rf_ble_beacond_config_raw(clock_time_t interval, const uint8_t *payload,
   }
 }
 /*---------------------------------------------------------------------------*/
+void
+rf_ble_beacond_burst_config(int burst_count, clock_time_t duty_cycle)
+{
+  if(burst_count > 0 ) {
+    beacond_config.burst_count = burst_count;
+  }
+
+  beacond_config.duty_cycle = duty_cycle;
+}
+/*---------------------------------------------------------------------------*/
 uint8_t
 rf_ble_beacond_start()
 {
@@ -297,7 +312,7 @@ PROCESS_THREAD(rf_ble_beacon_process, ev, data)
       PROCESS_EXIT();
     }
 
-    for(i = 0; i < BLE_ADV_MESSAGES; i++) {
+    for(i = 0; i < beacond_config.burst_count; i++) {
       /*
        * Under ContikiMAC, some IEEE-related operations will be called from an
        * interrupt context. We need those to see that we are in BLE mode.
@@ -309,8 +324,8 @@ PROCESS_THREAD(rf_ble_beacon_process, ev, data)
       }
 
       /*
-       * Send BLE_ADV_MESSAGES beacon bursts. Each burst on all three
-       * channels, with a BLE_ADV_DUTY_CYCLE interval between bursts
+       * Send beacond_config.burst_count beacon bursts. Each burst on all three
+       * channels, with a beacond_config.duty_cycle interval between bursts
        *
        * First, determine our state:
        *
@@ -384,18 +399,19 @@ PROCESS_THREAD(rf_ble_beacon_process, ev, data)
         /* Switch HF clock source to the RCOSC to preserve power */
         oscillators_switch_to_hf_rc();
       }
-      etimer_set(&ble_adv_et, BLE_ADV_DUTY_CYCLE);
-
-      interrupts_disabled = ti_lib_int_master_disable();
-
-      ble_mode_on = RF_BLE_IDLE;
-
-      if(!interrupts_disabled) {
-        ti_lib_int_master_enable();
-      }
 
       /* Wait unless this is the last burst */
-      if(i < BLE_ADV_MESSAGES - 1) {
+      if(i < beacond_config.burst_count - 1) {
+        etimer_set(&ble_adv_et, beacond_config.duty_cycle);
+
+        interrupts_disabled = ti_lib_int_master_disable();
+
+        ble_mode_on = RF_BLE_IDLE;
+
+        if(!interrupts_disabled) {
+          ti_lib_int_master_enable();
+        }
+
         PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&ble_adv_et));
       }
     }

@@ -84,6 +84,7 @@ static uint8_t ble_mode_on = RF_BLE_IDLE;
 static struct etimer ble_adv_et;
 /*---------------------------------------------------------------------------*/
 static uint16_t tx_power = 0x9330;
+static uint32_t ble_adv_count = 0;
 /*---------------------------------------------------------------------------*/
 /* BLE beacond config */
 static struct ble_beacond_config {
@@ -160,6 +161,8 @@ send_ble_adv_nc(int channel, uint8_t *adv_payload, int adv_payload_len)
            channel, cmd_status, cmd.status);
     return RF_CORE_CMD_ERROR;
   }
+
+  ble_adv_count++;
 
   return RF_CORE_CMD_OK;
 }
@@ -362,6 +365,56 @@ rf_ble_beacond_config_eddystone_url(clock_time_t interval, const char *url)
 
     beacond_config.payload_length = p;
   }
+
+  if(interval != 0) {
+    beacond_config.interval = interval;
+  }
+}
+/*---------------------------------------------------------------------------*/
+void
+rf_ble_beacond_config_eddystone_tlm(clock_time_t interval, uint16_t vbat,
+                                    int16_t temp)
+{
+  uint32_t tmp32;
+  int p;
+
+  if(RF_BLE_ENABLED == 0) {
+    return;
+  }
+
+  p = 0;
+  memset(beacond_config.payload, 0, BLE_ADV_PAYLOAD_BUF_LEN);
+
+  beacond_config.payload[p++] = 0x02; /* 2 bytes */
+  beacond_config.payload[p++] = 0x01; /* Flags */
+  beacond_config.payload[p++] = 0x06; /* LE general discoverable without BR/EDR */
+
+  beacond_config.payload[p++] = 0x03; /* 3 bytes */
+  beacond_config.payload[p++] = 0x03; /* Complete list of 16-bit Service UUIDs */
+  beacond_config.payload[p++] = 0xAA; /* 16-bit Eddystone UUID (LSB) */
+  beacond_config.payload[p++] = 0xFE; /* 16-bit Eddystone UUID (MSB) */
+
+  beacond_config.payload[p++] = 0x11; /* 17 bytes */
+  beacond_config.payload[p++] = 0x16; /* Service Data */
+  beacond_config.payload[p++] = 0xAA; /* 16-bit Eddystone UUID (LSB) */
+  beacond_config.payload[p++] = 0xFE; /* 16-bit Eddystone UUID (MSB) */
+  beacond_config.payload[p++] = 0x20; /* TLM Frame */
+  beacond_config.payload[p++] = 0x00; /* TLM version */
+  beacond_config.payload[p++] = (vbat >> 8) & 0xFF; /* Battery voltage (MSB) */
+  beacond_config.payload[p++] = vbat & 0xFF;        /* Battery voltage (LSB) */
+  beacond_config.payload[p++] = temp / 256;         /* Temperature (MSB) */
+  beacond_config.payload[p++] = temp % 256;         /* Temperature (LSB) */
+  /* Advertising PDU count */
+  tmp32 = uip_htonl(ble_adv_count);
+  memcpy(&beacond_config.payload[p], &tmp32, sizeof(uint32_t));
+  p += sizeof(uint32_t);
+  /* Time since power-on or reboot */
+  tmp32 = uip_htonl(clock_seconds() * 10
+                    + (clock_time() % CLOCK_SECOND) / (CLOCK_SECOND/10));
+  memcpy(&beacond_config.payload[p], &tmp32, sizeof(uint32_t));
+  p += sizeof(uint32_t);
+
+  beacond_config.payload_length = p;
 
   if(interval != 0) {
     beacond_config.interval = interval;

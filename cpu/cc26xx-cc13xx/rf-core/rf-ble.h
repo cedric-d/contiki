@@ -93,6 +93,19 @@ void rf_ble_beacond_config_eddystone_url(clock_time_t interval,
                                          const char *url);
 
 /**
+ * \brief Set the battery voltage and temperature to use with the Eddystone-TLM
+ *        advertisement daemon.
+ * \param interval The interval (ticks) between two consecutive TLM beacons.
+ * \param vbat The battery voltage to advertise in mV.
+ * \param temp The temperature to advertise in 1/256 degrees Celsius.
+ *
+ * vbat should be 0 if not available; temp should be 0x8000 if not available.
+ * If interval==0 it will be ignored.
+ */
+void rf_ble_beacond_config_eddystone_tlm(clock_time_t interval, uint16_t vbat,
+                                         int16_t temp);
+
+/**
  * \brief Set the payload to use with the BLE advertisement/beacon daemon.
  * \param interval The interval (ticks) between two consecutive beacon bursts.
  * \param payload The payload to send.

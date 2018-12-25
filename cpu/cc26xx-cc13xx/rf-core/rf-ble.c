@@ -74,11 +74,14 @@
 #define BLE_ADV_NAME_BUF_LEN        32
 #define BLE_ADV_PAYLOAD_BUF_LEN     64
 #define BLE_UUID_SIZE               16
+
+/* Eddystone BLE Advertisement-related macros */
+#define BLE_EDDYSTONE_UID_LENGTH 16
+#define BLE_EDDYSTONE_URL_MAXLENGTH 17
 /*---------------------------------------------------------------------------*/
 static unsigned char ble_params_buf[32] CC_ALIGN(4);
 static uint8_t ble_mode_on = RF_BLE_IDLE;
 static struct etimer ble_adv_et;
-static int i;
 /*---------------------------------------------------------------------------*/
 static uint16_t tx_power = 0x9330;
 /*---------------------------------------------------------------------------*/
@@ -169,22 +172,22 @@ rf_ble_beacond_config(clock_time_t interval, const char *name)
   }
 
   if(name != NULL) {
+    int p;
     size_t namelen = strlen(name);
     if(namelen == 0 || namelen >= BLE_ADV_NAME_BUF_LEN) {
       return;
     }
 
-    /* generate the payload */
-    i = 0;
+    p = 0;
     memset(beacond_config.payload, 0, BLE_ADV_PAYLOAD_BUF_LEN);
-    beacond_config.payload[i++] = 0x02; /* 2 bytes */
-    beacond_config.payload[i++] = BLE_ADV_TYPE_DEVINFO;
-    beacond_config.payload[i++] = 0x1a; /* LE general discoverable + BR/EDR */
-    beacond_config.payload[i++] = 1 + namelen;
-    beacond_config.payload[i++] = BLE_ADV_TYPE_NAME;
-    memcpy(&beacond_config.payload[i], name, namelen);
-    i += namelen;
-    beacond_config.payload_length = i;
+    beacond_config.payload[p++] = 0x02; /* 2 bytes */
+    beacond_config.payload[p++] = BLE_ADV_TYPE_DEVINFO;
+    beacond_config.payload[p++] = 0x1a; /* LE general discoverable + BR/EDR */
+    beacond_config.payload[p++] = 1 + namelen;
+    beacond_config.payload[p++] = BLE_ADV_TYPE_NAME;
+    memcpy(&beacond_config.payload[p], name, namelen);
+    p += namelen;
+    beacond_config.payload_length = p;
   }
 
   if(interval != 0) {
@@ -209,6 +212,155 @@ rf_ble_beacond_config_raw(clock_time_t interval, const uint8_t *payload,
     memset(beacond_config.payload + payload_length, 0,
            BLE_ADV_PAYLOAD_BUF_LEN - payload_length);
     beacond_config.payload_length = payload_length;
+  }
+
+  if(interval != 0) {
+    beacond_config.interval = interval;
+  }
+}
+/*---------------------------------------------------------------------------*/
+void
+rf_ble_beacond_config_eddystone_uid(clock_time_t interval,
+                                    const uint8_t uid[BLE_EDDYSTONE_UID_LENGTH])
+{
+  if(RF_BLE_ENABLED == 0) {
+    return;
+  }
+
+  if(uid != NULL) {
+    int p;
+
+    radio_value_t tx_level = 0;
+    NETSTACK_RADIO.get_value(RADIO_PARAM_TXPOWER, &tx_level);
+
+    p = 0;
+    memset(beacond_config.payload, 0, BLE_ADV_PAYLOAD_BUF_LEN);
+
+    beacond_config.payload[p++] = 0x02; /* 2 bytes */
+    beacond_config.payload[p++] = 0x01; /* Flags */
+    beacond_config.payload[p++] = 0x06; /* LE general discoverable without BR/EDR */
+
+    beacond_config.payload[p++] = 0x03; /* 3 bytes */
+    beacond_config.payload[p++] = 0x03; /* Complete list of 16-bit Service UUIDs */
+    beacond_config.payload[p++] = 0xAA; /* 16-bit Eddystone UUID (LSB) */
+    beacond_config.payload[p++] = 0xFE; /* 16-bit Eddystone UUID (MSB) */
+
+    beacond_config.payload[p++] = 0x17; /* 23 bytes */
+    beacond_config.payload[p++] = 0x16; /* Service Data */
+    beacond_config.payload[p++] = 0xAA; /* 16-bit Eddystone UUID (LSB) */
+    beacond_config.payload[p++] = 0xFE; /* 16-bit Eddystone UUID (MSB) */
+    beacond_config.payload[p++] = 0x00; /* UID Frame */
+    beacond_config.payload[p++] = tx_level; /* Calibrated Tx power at 0 m */
+    memcpy(&beacond_config.payload[p], uid, BLE_EDDYSTONE_UID_LENGTH);
+    p += BLE_EDDYSTONE_UID_LENGTH;
+    beacond_config.payload[p++] = 0x00; /* Reserved for future use */
+    beacond_config.payload[p++] = 0x00; /* Reserved for future use */
+
+    beacond_config.payload_length = p;
+  }
+
+  if(interval != 0) {
+    beacond_config.interval = interval;
+  }
+}
+/*---------------------------------------------------------------------------*/
+void
+rf_ble_beacond_config_eddystone_url(clock_time_t interval, const char *url)
+{
+  static const char *eddystoneURLSchemePrefix[] = {
+    "http://www.",  /* 0x00 */
+    "https://www.", /* 0x01 */
+    "http://",      /* 0x02 */
+    "https://",     /* 0x03 */
+  };
+#define BLE_EDDYSTONE_URL_SCHEME_PREFIX_COUNT \
+    (sizeof(eddystoneURLSchemePrefix) / sizeof(eddystoneURLSchemePrefix[0]))
+
+  static const char *eddystoneURLEncoding[] = {
+    ".com/",  /* 0x00 */
+    ".org/",  /* 0x01 */
+    ".edu/",  /* 0x02 */
+    ".net/",  /* 0x03 */
+    ".info/", /* 0x04 */
+    ".biz/",  /* 0x05 */
+    ".gov/",  /* 0x06 */
+    ".com",   /* 0x07 */
+    ".org",   /* 0x08 */
+    ".edu",   /* 0x09 */
+    ".net",   /* 0x0a */
+    ".info",  /* 0x0b */
+    ".biz",   /* 0x0c */
+    ".gov",   /* 0x0d */
+  };
+#define BLE_EDDYSTONE_URL_ENCODING_COUNT \
+    (sizeof(eddystoneURLEncoding) / sizeof(eddystoneURLEncoding[0]))
+
+  if(RF_BLE_ENABLED == 0) {
+    return;
+  }
+
+  if(url != NULL) {
+    int i, p, c = 0;
+    size_t len;
+
+    radio_value_t tx_level = 0;
+    NETSTACK_RADIO.get_value(RADIO_PARAM_TXPOWER, &tx_level);
+
+    p = 0;
+    memset(beacond_config.payload, 0, BLE_ADV_PAYLOAD_BUF_LEN);
+    beacond_config.payload_length = 0;
+
+    beacond_config.payload[p++] = 0x02; /* 2 bytes */
+    beacond_config.payload[p++] = 0x01; /* Flags */
+    beacond_config.payload[p++] = 0x06; /* LE general discoverable without BR/EDR */
+
+    beacond_config.payload[p++] = 0x03; /* 3 bytes */
+    beacond_config.payload[p++] = 0x03; /* Complete list of 16-bit Service UUIDs */
+    beacond_config.payload[p++] = 0xAA; /* 16-bit Eddystone UUID (LSB) */
+    beacond_config.payload[p++] = 0xFE; /* 16-bit Eddystone UUID (MSB) */
+
+    beacond_config.payload[p++] = 0x06; /* Length (incl. URL scheme prefix) */
+    beacond_config.payload[p++] = 0x16; /* Service Data */
+    beacond_config.payload[p++] = 0xAA; /* 16-bit Eddystone UUID (LSB) */
+    beacond_config.payload[p++] = 0xFE; /* 16-bit Eddystone UUID (MSB) */
+    beacond_config.payload[p++] = 0x10; /* URL Frame */
+    beacond_config.payload[p++] = tx_level; /* Calibrated Tx power at 0 m */
+
+    /* encode the URL Scheme Prefix */
+    for (i = 0; i < BLE_EDDYSTONE_URL_SCHEME_PREFIX_COUNT; i++) {
+      len = strlen(eddystoneURLSchemePrefix[i]);
+      if (strncmp(url, eddystoneURLSchemePrefix[i], len) == 0) {
+        beacond_config.payload[p++] = i;
+        c += len;
+        break;
+      }
+    }
+    if (i == BLE_EDDYSTONE_URL_SCHEME_PREFIX_COUNT) {
+      return;
+    }
+
+    /* copy URL replacing tokens as they are found */
+    while (p <= (14 + BLE_EDDYSTONE_URL_MAXLENGTH) && url[c] != '\0') {
+      for (i = 0; i < BLE_EDDYSTONE_URL_ENCODING_COUNT; i++) {
+        len = strlen(eddystoneURLEncoding[i]);
+        if (strncmp(&url[c], eddystoneURLEncoding[i], len) == 0) {
+          beacond_config.payload[p++] = i;
+          c += len;
+          break;
+        }
+      }
+      if (i == BLE_EDDYSTONE_URL_ENCODING_COUNT) {
+        beacond_config.payload[p++] = url[c++];
+      }
+    }
+    if (url[c] != '\0') {
+      return;
+    }
+
+    /* add the URL to the length within the payload */
+    beacond_config.payload[7] += (p - 14);
+
+    beacond_config.payload_length = p;
   }
 
   if(interval != 0) {
@@ -297,7 +449,7 @@ rf_radio_setup()
 PROCESS_THREAD(rf_ble_beacon_process, ev, data)
 {
   uint8_t was_on;
-  int j;
+  static int i;
   uint32_t cmd_status;
   bool interrupts_disabled;
 
@@ -371,6 +523,7 @@ PROCESS_THREAD(rf_ble_beacon_process, ev, data)
         PRINTF("cc26xx_rf_ble_beacon_process: Error entering BLE mode\n");
         /* Continue so we can at least try to restore our previous state */
       } else {
+        int j;
         /* Send advertising packets on all 3 advertising channels */
         for(j = 37; j <= 39; j++) {
           if(send_ble_adv_nc(j, beacond_config.payload,

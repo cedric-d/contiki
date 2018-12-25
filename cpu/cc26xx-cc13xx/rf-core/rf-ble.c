@@ -93,10 +93,14 @@ static struct ble_beacond_config {
   int burst_count;
   int payload_length;
   uint8_t payload[BLE_ADV_PAYLOAD_BUF_LEN];
+  bool (*cb)(void *arg);
+  void *cb_arg;
 } beacond_config = { .interval = BLE_ADV_INTERVAL,
                      .duty_cycle = BLE_ADV_DUTY_CYCLE,
                      .burst_count = BLE_ADV_MESSAGES,
-                     .payload_length = 0 };
+                     .payload_length = 0,
+                     .cb = NULL,
+                     .cb_arg = NULL };
 /*---------------------------------------------------------------------------*/
 #ifdef RF_BLE_CONF_BOARD_OVERRIDES
 #define RF_BLE_BOARD_OVERRIDES RF_BLE_CONF_BOARD_OVERRIDES
@@ -422,6 +426,13 @@ rf_ble_beacond_config_eddystone_tlm(clock_time_t interval, uint16_t vbat,
 }
 /*---------------------------------------------------------------------------*/
 void
+rf_ble_beacond_callback_config(bool (*callback)(void *), void *arg)
+{
+  beacond_config.cb = callback;
+  beacond_config.cb_arg = arg;
+}
+/*---------------------------------------------------------------------------*/
+void
 rf_ble_beacond_burst_config(int burst_count, clock_time_t duty_cycle)
 {
   if(burst_count > 0 ) {
@@ -515,6 +526,11 @@ PROCESS_THREAD(rf_ble_beacon_process, ev, data)
 
     if(ev == PROCESS_EVENT_EXIT) {
       PROCESS_EXIT();
+    }
+
+    /* execute the callback if defined and handle its result */
+    if (beacond_config.cb && !beacond_config.cb(beacond_config.cb_arg)) {
+      continue;
     }
 
     for(i = 0; i < beacond_config.burst_count; i++) {

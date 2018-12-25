@@ -119,6 +119,16 @@ void rf_ble_beacond_config_raw(clock_time_t interval, const uint8_t *payload,
                                size_t payload_length);
 
 /**
+ * \brief Configure a callback to be executed when new beacon shall be sent.
+ * \param callback The callback to call or NULL to disable.
+ * \param arg Argument to give to the callback function.
+ *
+ * The callback function shall return TRUE to emit the beacon or FALSE to
+ * to prevent the emission.
+ */
+void rf_ble_beacond_callback_config(bool (*callback)(void *), void *arg);
+
+/**
  * \brief Configure the burst of BLE advertisements.
  * \param burst_count The number of messages sent at each burst.
  * \param duty_cycle The delay (ticks) between each message in the burst.
